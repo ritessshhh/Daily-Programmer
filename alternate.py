@@ -1,3 +1,5 @@
+#/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=5000
+
 from selenium import webdriver
 from bs4 import BeautifulSoup
 from selenium.webdriver.support.ui import WebDriverWait
