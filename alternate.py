@@ -1,5 +1,3 @@
-#/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=5000
-
 from selenium import webdriver
 from bs4 import BeautifulSoup
 from selenium.webdriver.support.ui import WebDriverWait
@@ -12,7 +10,7 @@ import pandas as pd
 bool = True
 
 chrome_options = webdriver.ChromeOptions()
-chrome_options.add_experimental_option("debuggerAddress", "127.0.0.1:3000")
+chrome_options.add_experimental_option("debuggerAddress", "127.0.0.1:5000")
 driver = webdriver.Chrome(options=chrome_options)
 
 # Total number of pages
@@ -20,10 +18,9 @@ total_pages = 1655  # Adjust this value as per your requirement
 
 # Base URL
 base_url = "https://classie-evals.stonybrook.edu/?currentTerm=ALL&page="
-base_url2 = "https://classie-evals.stonybrook.edu/?currentTerm=ALL&page=1"
+base_url2 = "https://classie-evals.stonybrook.edu/?currentTerm=ALL&page=103"
 
-columns = ["Section", "Course", "Instructor", "URL", "Overall Grade", "A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D+", "D", "F", "P",
-           "NC", "I", "W"]
+columns = ["Section", "Good Comments","Bad Comments", "URL"]
 
 excel_file_path = "classie_evals_data.xlsx"
 
@@ -45,7 +42,7 @@ try:
 
     driver.get(base_url2)
 
-    for page_number in range(1, total_pages + 144):
+    for page_number in range(103, 500):
         print(f"Page Number: {page_number}")
         print("___________________")
         # Navigate to the webpage
@@ -89,20 +86,6 @@ try:
             except:
                 section = ""
 
-            try:
-                course_title = tr.find_all('td')[1].text.strip()
-            except:
-                course_title = ""
-
-            try:
-                instructor = tr.find_all('td')[2].a.text.strip()
-            except:
-                instructor = ""
-
-            # print(f"Section: {section}")
-            # print(f"Course Title: {course_title}")
-            # print(f"Instructor: {instructor}")
-
             # Extracting the link and use AJAX to get the HTML of the linked page
             section_link = tr.find_all('td')[0].a['href']
             section_link = f"https://classie-evals.stonybrook.edu/{section_link}"  # Replace example.com with the actual domain
@@ -123,43 +106,39 @@ try:
             try:
                 page_content = driver.execute_async_script(js_script)
                 soup_page = BeautifulSoup(page_content, 'html.parser')
-                scripts = soup_page.find_all('script')
-                script1_content = scripts[9].string
-                script2_content = scripts[10].string
 
-                # Using regular expression to extract the grades and their counts
-                pattern1 = re.compile(r"\['(.*?)', (\d+),")
-                grades_list = pattern1.findall(script1_content)[0:15]
-                grades = dict((name, int(grade)) for name, grade in grades_list)
+                ul_tag = soup_page.find('ul', id='paginate-1')
+                ul_tag2 = soup_page.find('ul', id='paginate-2')
 
-                # Using regular expression to extract the overall grade with 1 response
-                pattern2 = re.compile(r"\['(.*?)', (\d+),")
+                # Extract all li elements from both ul tags
+                li_tags1 = ul_tag.find_all('li') if ul_tag else []
+                li_tags2 = ul_tag2.find_all('li') if ul_tag2 else []
 
-                try:
-                    overall_grade_with_1 = pattern2.findall(script2_content)[0:5]
-                    overall_grade_with_1 = max(overall_grade_with_1, key=lambda x: int(x[1]))
-                except:
-                    overall_grade_with_1 = ""
+                # Extract the text from li elements and store it in arrays
+                GoodComments = [li.text.strip() for li in li_tags1]
+                BadComments = [li.text.strip() for li in li_tags2]
+
+                # print(GoodComments)
+                # print(BadComments)
+                # print("\n")
 
                 row_data = {
                     "Section": section,
-                    "Course": course_title,
-                    "Instructor": instructor,
-                    "URL": driver.current_url,
-                    "Overall Grade": overall_grade_with_1
+                    "Good Comments": GoodComments,
+                    "Bad Comments": BadComments,
+                    "URL":section_link
                 }
 
-                for grade in columns[5:]:
-                    row_data[grade] = grades.get(grade, 0)
-                if (has_non_zero_grade(grades)):
-                    data.loc[len(data)] = row_data
+                data.loc[len(data)] = row_data
+
             except:
                 pass
 
-    # Close the browser
-    driver.quit()
-    data.to_excel(excel_file_path, index=False, engine='openpyxl')
 except Exception as e:
     print(e)
     driver.quit()
     data.to_excel(excel_file_path, index=False, engine='openpyxl')
+
+# Close the browser
+driver.quit()
+data.to_excel(excel_file_path, index=False, engine='openpyxl')
