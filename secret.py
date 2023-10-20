@@ -1,8 +1,8 @@
 import discord
 from discord.ext import commands, tasks
 
-TOKEN = "MTE0MzQ0NjY5NjczMTM2MTI4MA.GboviG.pXcurbT9afLOGjsEronbwF6pc17CFQRZM3zm50"
-CHANNEL_ID = 1144659467464617988
+TOKEN = "YourToken"
+CHANNEL_ID = "YourChannelID"
 FILE_NAME = "messages.txt"
 
 intents = discord.Intents.default()
